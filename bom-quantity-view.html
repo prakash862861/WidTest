@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOM Quantity View</title>
+    <style>
+        /* BOM Table Styles - Embedded */
+        .bom-table-container {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bom-table-header {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .bom-table-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .bom-btn {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .bom-btn:hover {
+            background-color: #e6e6e6;
+        }
+
+        .bom-btn.primary {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .bom-btn.primary:hover {
+            background-color: #0056b3;
+        }
+
+        .bom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .bom-table th {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .bom-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+
+        .bom-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .bom-table tr:hover {
+            background-color: #e8f4f8;
+        }
+
+        /* Hierarchy indentation */
+        .bom-row-level-0 { padding-left: 8px; }
+        .bom-row-level-1 { padding-left: 28px; }
+        .bom-row-level-2 { padding-left: 48px; }
+        .bom-row-level-3 { padding-left: 68px; }
+        .bom-row-level-4 { padding-left: 88px; }
+        .bom-row-level-5 { padding-left: 108px; }
+        .bom-row-level-6 { padding-left: 128px; }
+        .bom-row-level-7 { padding-left: 148px; }
+        .bom-row-level-8 { padding-left: 168px; }
+        .bom-row-level-9 { padding-left: 188px; }
+
+        /* Expand/Collapse Button */
+        .bom-expand-btn {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 14px;
+            text-align: center;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .bom-expand-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .bom-expand-btn.collapsed::before {
+            content: '+';
+        }
+
+        .bom-expand-btn.expanded::before {
+            content: '-';
+        }
+
+        .bom-expand-btn.no-children {
+            background-color: transparent;
+            border: 1px solid #ddd;
+            color: #999;
+            cursor: default;
+        }
+
+        .bom-expand-btn.no-children::before {
+            content: '';
+        }
+
+        /* Hidden rows */
+        .bom-row.hidden {
+            display: none;
+        }
+
+        /* Title column with hierarchy */
+        .bom-title-cell {
+            position: relative;
+        }
+
+        /* State indicators */
+        .bom-state {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .bom-state.in-work {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .bom-state.released {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Instance name styling */
+        .bom-instance-name {
+            font-style: italic;
+            color: #666;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+
+        /* Loading state */
+        .bom-loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .bom-loading::after {
+            content: '...';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% {
+                color: rgba(0,0,0,0);
+                text-shadow:
+                    .25em 0 0 rgba(0,0,0,0),
+                    .5em 0 0 rgba(0,0,0,0);
+            }
+            40% {
+                color: #666;
+                text-shadow:
+                    .25em 0 0 rgba(0,0,0,0),
+                    .5em 0 0 rgba(0,0,0,0);
+            }
+            60% {
+                text-shadow:
+                    .25em 0 0 #666,
+                    .5em 0 0 rgba(0,0,0,0);
+            }
+            80%, 100% {
+                text-shadow:
+                    .25em 0 0 #666,
+                    .5em 0 0 #666;
+            }
+        }
+
+        /* General page styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .controls {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .control-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .info-panel {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .info-panel strong {
+            color: #1976d2;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .table-container {
+            padding: 20px;
+        }
+
+        .error {
+            background: #ffebee;
+            border: 1px solid #f8bbd9;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px;
+        }
+
+        /* Quantity View Specific Styles */
+        .quantity-highlight {
+            background: #fff3e0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .instance-names {
+            font-size: 0.9em;
+            color: #555;
+            word-wrap: break-word;
+        }
+
+        .quantity-summary {
+            background: #f0f7ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .summary-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+
+        .summary-value {
+            font-weight: bold;
+            color: #1976d2;
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .controls {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .control-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .info-panel {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .info-panel strong {
+            color: #1976d2;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .table-container {
+            padding: 20px;
+        }
+
+        .error {
+            background: #ffebee;
+            border: 1px solid #f8bbd9;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px;
+        }
+
+        /* Quantity View Specific Styles */
+        .quantity-highlight {
+            background: #fff3e0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .instance-names {
+            font-size: 0.9em;
+            color: #555;
+            word-wrap: break-word;
+        }
+
+        .quantity-summary {
+            background: #f0f7ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .summary-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+
+        .summary-value {
+            font-weight: bold;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>BOM Quantity View</h1>
+            <p>Grouped Bill of Materials with Quantities and Instance Names</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="loadQuantityView()">
+                        🔄 Load Quantity View
+                    </button>
+                    <button class="btn btn-secondary" onclick="expandAll()">
+                        📂 Expand All
+                    </button>
+                    <button class="btn btn-secondary" onclick="collapseAll()">
+                        📁 Collapse All
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportData()">
+                        💾 Export Data
+                    </button>
+                </div>
+                
+                <div id="summary" class="quantity-summary" style="display: none;">
+                    <span class="summary-item">
+                        Total Products: <span id="totalProducts" class="summary-value">0</span>
+                    </span>
+                    <span class="summary-item">
+                        Total Instances: <span id="totalInstances" class="summary-value">0</span>
+                    </span>
+                    <span class="summary-item">
+                        Unique Parts: <span id="uniqueParts" class="summary-value">0</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <strong>Quantity View:</strong> Groups identical products under the same parent, showing total quantities and comma-separated instance names.
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading" style="display: none;">
+                Loading quantity view data...
+            </div>
+            
+            <div id="error" class="error" style="display: none;">
+                Error loading data. Please check the console for details.
+            </div>
+            
+            <div id="bomTableContainer"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // bomTable.js - Embedded Reusable BOM Table Component
+        class BOMTable {
+            constructor(containerId, options = {}) {
+                this.containerId = containerId;
+                this.container = document.getElementById(containerId);
+                this.data = [];
+                this.flatData = [];
+                this.expandedNodes = new Set();
+                
+                // Default options
+                this.options = {
+                    columns: [
+                        { key: 'title', header: 'Title', width: '30%' },
+                        { key: 'duration', header: 'Duration', width: '15%' },
+                        { key: 'progress', header: '% Complete', width: '20%' },
+                        { key: 'start', header: 'Start', width: '15%' },
+                        { key: 'finish', header: 'Finish', width: '15%' },
+                        { key: 'effort', header: 'Effort Days', width: '5%' }
+                    ],
+                    showControls: true,
+                    expandable: true,
+                    maxLevel: 10,
+                    ...options
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                if (!this.container) {
+                    console.error(`Container with ID '${this.containerId}' not found`);
+                    return;
+                }
+                
+                this.createTableStructure();
+                this.attachEventListeners();
+            }
+            
+            createTableStructure() {
+                console.log('Creating table structure...');
+                this.container.innerHTML = `
+                    <div class="bom-table-container">
+                        <div class="bom-table-header">
+                            <h3>BOM Structure</h3>
+                            ${this.options.showControls ? this.createControlsHTML() : ''}
+                        </div>
+                        <div class="bom-table-wrapper">
+                            <table class="bom-table">
+                                <thead>
+                                    ${this.createHeaderHTML()}
+                                </thead>
+                                <tbody class="bom-table-body">
+                                    <tr><td colspan="${this.options.columns.length}" class="bom-loading">Loading BOM data</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                console.log('Table structure created');
+            }
+            
+            createControlsHTML() {
+                return `
+                    <div class="bom-table-controls">
+                        <button class="bom-btn primary" id="expandAll">Expand All</button>
+                        <button class="bom-btn" id="collapseAll">Collapse All</button>
+                        <button class="bom-btn" id="refreshTable">Refresh</button>
+                    </div>
+                `;
+            }
+            
+            createHeaderHTML() {
+                return `
+                    <tr>
+                        ${this.options.columns.map(col => 
+                            `<th style="width: ${col.width}">${col.header}</th>`
+                        ).join('')}
+                    </tr>
+                `;
+            }
+            
+            attachEventListeners() {
+                if (this.options.showControls) {
+                    const expandAllBtn = this.container.querySelector('#expandAll');
+                    const collapseAllBtn = this.container.querySelector('#collapseAll');
+                    const refreshBtn = this.container.querySelector('#refreshTable');
+                    
+                    if (expandAllBtn) expandAllBtn.addEventListener('click', () => this.expandAll());
+                    if (collapseAllBtn) collapseAllBtn.addEventListener('click', () => this.collapseAll());
+                    if (refreshBtn) refreshBtn.addEventListener('click', () => this.refresh());
+                }
+            }
+            
+            loadData(bomData) {
+                console.log('Loading BOM data into table:', bomData);
+                if (!bomData || bomData.length === 0) {
+                    console.error('No BOM data provided');
+                    return;
+                }
+                this.data = bomData;
+                // For quantity view, data is already flattened correctly
+                if (bomData[0] && bomData[0].hasOwnProperty('level')) {
+                    console.log('Using pre-flattened quantity data');
+                    this.flatData = bomData;
+                } else {
+                    this.flatData = this.flattenBOMData(bomData);
+                }
+                console.log('Final flat data for rendering:', this.flatData);
+                this.renderTable();
+            }
+            
+            flattenBOMData(data, level = 0, parentId = null) {
+                let flattened = [];
+                
+                data.forEach((item, index) => {
+                    const nodeId = `${parentId || 'root'}-${index}`;
+                    
+                    // For quantity view, the item structure is already flat
+                    // Just use the item properties directly
+                    const flatItem = {
+                        id: nodeId,
+                        level: level,
+                        parentId: parentId,
+                        hasChildren: item.hasChildren || false,
+                        expanded: false,
+                        visible: level === 0, // Only root level visible initially
+                        
+                        // Use item properties directly
+                        title: item.title || 'Unknown',
+                        name: item.name || 'N/A',
+                        revision: item.revision || 'N/A',
+                        modified: item.modified || 'N/A',
+                        state: item.state || 'UNKNOWN',
+                        instanceName: item.instanceNames || 'N/A',
+                        quantity: item.quantity || 1,
+                        instanceNames: item.instanceNames || 'N/A',
+                        organization: item.organization || '',
+                        type: item.type || ''
+                    };
+                    
+                    flattened.push(flatItem);
+                });
+                
+                return flattened;
+            }
+            
+            getTitle(item, product, instance) {
+                // Check if this is quantity view (item has quantity property)
+                if (item.hasOwnProperty('quantity')) {
+                    // Quantity view - just show product title
+                    return product.title || product.name || 'Unknown';
+                } else {
+                    // Structure view - show title with instance name
+                    return instance ? `${product.title || product.name || 'Unknown'} (${instance.name})` : (product.title || product.name || 'Unknown');
+                }
+            }
+            
+            renderTable() {
+                const tbody = this.container.querySelector('.bom-table-body');
+                if (!tbody) return;
+                
+                const visibleItems = this.flatData.filter(item => item.visible);
+                
+                if (visibleItems.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="' + this.options.columns.length + '" class="bom-loading">No data available</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = visibleItems.map(item => this.createRowHTML(item)).join('');
+                
+                // Attach click listeners to expand buttons
+                this.attachRowEventListeners();
+            }
+            
+            createRowHTML(item) {
+                const expandButton = this.createExpandButtonHTML(item);
+                const stateClass = item.state.toLowerCase().replace('_', '-');
+                
+                // Generate columns dynamically based on configuration
+                const columnsHTML = this.options.columns.map(column => {
+                    let cellContent = '';
+                    
+                    switch (column.key) {
+                        case 'title':
+                            cellContent = `
+                                <div class="bom-row-level-${item.level}">
+                                    ${expandButton}
+                                    ${item.title}
+                                </div>
+                            `;
+                            return `<td class="bom-title-cell">${cellContent}</td>`;
+                            
+                        case 'state':
+                            cellContent = `<span class="bom-state ${stateClass}">${item.state}</span>`;
+                            return `<td>${cellContent}</td>`;
+                            
+                        case 'quantity':
+                            cellContent = item.quantity || 1;
+                            return `<td style="text-align: center; font-weight: bold;">${cellContent}</td>`;
+                            
+                        case 'instanceNames':
+                            cellContent = item.instanceNames || 'N/A';
+                            return `<td style="font-size: 0.9em;">${cellContent}</td>`;
+                            
+                        default:
+                            cellContent = item[column.key] || 'N/A';
+                            return `<td>${cellContent}</td>`;
+                    }
+                }).join('');
+                
+                return `
+                    <tr class="bom-row bom-row-level-${item.level}" data-id="${item.id}">
+                        ${columnsHTML}
+                    </tr>
+                `;
+            }
+            
+            createExpandButtonHTML(item) {
+                if (!item.hasChildren) {
+                    return '<span class="bom-expand-btn no-children"></span>';
+                }
+                
+                const isExpanded = this.expandedNodes.has(item.id);
+                const className = isExpanded ? 'expanded' : 'collapsed';
+                
+                return `<button class="bom-expand-btn ${className}" data-id="${item.id}"></button>`;
+            }
+            
+            attachRowEventListeners() {
+                const expandButtons = this.container.querySelectorAll('.bom-expand-btn:not(.no-children)');
+                expandButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const nodeId = button.dataset.id;
+                        this.toggleNode(nodeId);
+                    });
+                });
+            }
+            
+            toggleNode(nodeId) {
+                const item = this.flatData.find(item => item.id === nodeId);
+                if (!item || !item.hasChildren) return;
+                
+                if (this.expandedNodes.has(nodeId)) {
+                    this.collapseNode(nodeId);
+                } else {
+                    this.expandNode(nodeId);
+                }
+                
+                this.renderTable();
+            }
+            
+            expandNode(nodeId) {
+                this.expandedNodes.add(nodeId);
+                
+                // Make direct children visible
+                this.flatData.forEach(item => {
+                    if (item.parentId === nodeId) {
+                        item.visible = true;
+                    }
+                });
+            }
+            
+            collapseNode(nodeId) {
+                this.expandedNodes.delete(nodeId);
+                
+                // Hide all descendants
+                const hideDescendants = (parentId) => {
+                    this.flatData.forEach(item => {
+                        if (item.parentId === parentId) {
+                            item.visible = false;
+                            this.expandedNodes.delete(item.id);
+                            hideDescendants(item.id);
+                        }
+                    });
+                };
+                
+                hideDescendants(nodeId);
+            }
+            
+            expandAll() {
+                this.flatData.forEach(item => {
+                    if (item.hasChildren) {
+                        this.expandedNodes.add(item.id);
+                    }
+                    if (item.level > 0) {
+                        item.visible = true;
+                    }
+                });
+                this.renderTable();
+            }
+            
+            collapseAll() {
+                this.expandedNodes.clear();
+                this.flatData.forEach(item => {
+                    if (item.level > 0) {
+                        item.visible = false;
+                    }
+                });
+                this.renderTable();
+            }
+            
+            refresh() {
+                this.renderTable();
+            }
+            
+            // Public API methods
+            getSelectedItems() {
+                return this.flatData.filter(item => item.selected);
+            }
+            
+            updateData(newData) {
+                this.loadData(newData);
+            }
+            
+            exportData() {
+                return {
+                    data: this.data,
+                    expandedNodes: Array.from(this.expandedNodes)
+                };
+            }
+            
+            destroy() {
+                if (this.container) {
+                    this.container.innerHTML = '';
+                }
+            }
+        }
+
+        // bomQuantityView.js - Fixed Quantity View Logic for Expected Result
+        function transformToQuantityView(engitemResponse) {
+            console.log('🔄 Starting STEP-BY-STEP Quantity View Transformation...');
+            
+            const parentID = "4611CC298D12000068A0BA8A000001BF";
+            const products = {};
+            const instances = {};
+            const paths = [];
+            
+            // Separate data types
+            engitemResponse.member.forEach((item) => {
+                if (item.type === 'VPMReference') {
+                    products[item.id] = item;
+                    console.log(`📦 Product: ${item.title} (${item.id})`);
+                } else if (item.type === 'VPMInstance') {
+                    instances[item.id] = item;
+                    console.log(`🔗 Instance: ${item.name} (${item.id})`);
+                } else if (item.Path) {
+                    paths.push(item.Path);
+                    console.log(`📍 Path: ${item.Path.join(' → ')}`);
+                }
+            });
+
+            console.log(`📊 Data Summary: ${Object.keys(products).length} products, ${Object.keys(instances).length} instances, ${paths.length} paths`);
+            
+            // Debug: Show all paths and their lengths
+            console.log('\n📍 All paths in data:');
+            paths.forEach((path, index) => {
+                console.log(`  Path ${index + 1} (${path.length} elements, ${Math.floor((path.length - 1) / 2)} levels): [${path.join(' → ')}]`);
+            });
+
+            // Extract all parent-child relationships with proper quantity grouping
+            const relationships = new Map(); // key: parentId-childId, value: {parent, child, instances: []}
+            
+            paths.forEach((path, pathIndex) => {
+                console.log(`\n🔗 Analyzing path ${pathIndex + 1}: [${path.join(' → ')}]`);
+                console.log(`  Path interpretation:`);
+                
+                for (let i = 0; i < path.length - 2; i += 2) {
+                    const parentProductId = path[i];
+                    const instanceId = path[i + 1];
+                    const childProductId = path[i + 2];
+                    
+                    console.log(`    Level ${i/2}: Product[${parentProductId}] --Instance[${instanceId}]--> Product[${childProductId}]`);
+                    
+                    if (products[parentProductId] && products[childProductId] && instances[instanceId]) {
+                        const parentTitle = products[parentProductId].title;
+                        const childTitle = products[childProductId].title;
+                        const instanceName = instances[instanceId].name;
+                        
+                        console.log(`      = ${parentTitle} --[${instanceName}]--> ${childTitle}`);
+                        
+                        const key = `${parentProductId}-${childProductId}`;
+                        
+                        if (!relationships.has(key)) {
+                            relationships.set(key, {
+                                parentId: parentProductId,
+                                childId: childProductId,
+                                parent: products[parentProductId],
+                                child: products[childProductId],
+                                level: i / 2,
+                                instances: []
+                            });
+                            console.log(`      ✨ NEW relationship: ${key}`);
+                        } else {
+                            console.log(`      ➕ Adding to existing relationship: ${key}`);
+                        }
+                        
+                        // Only add instance if it's not already in the list (avoid duplicates)
+                        const relationship = relationships.get(key);
+                        const existingInstance = relationship.instances.find(inst => inst.id === instanceId);
+                        if (!existingInstance) {
+                            relationship.instances.push(instances[instanceId]);
+                            console.log(`        ➕ Added new instance: ${instances[instanceId].name}`);
+                        } else {
+                            console.log(`        ⚠️ Instance ${instances[instanceId].name} already exists, skipping`);
+                        }
+                    } else {
+                        console.log(`      ❌ Missing data for this relationship`);
+                    }
+                }
+            });
+
+            console.log(`\n🏗️ Found ${relationships.size} unique parent-child relationships (after grouping)`);
+            
+            // Debug: Log all relationships to see what we found
+            console.log('\n🔍 All relationships found:');
+            for (const [key, rel] of relationships) {
+                console.log(`  ${key}: ${rel.parent.title} → ${rel.child.title} (${rel.instances.length} instances at level ${rel.level})`);
+                console.log(`    Instances: ${rel.instances.map(inst => inst.name).join(', ')}`);
+            }
+
+            // Build tree structure with proper grouping
+            const nodeMap = new Map();
+            
+            // Initialize root
+            const rootNode = {
+                ...products[parentID],
+                level: 0,
+                children: [],
+                quantity: 1,
+                instanceNames: 'N/A'
+            };
+            nodeMap.set(parentID, rootNode);
+
+            // Group relationships by level and build tree level by level
+            const relationshipsByLevel = new Map();
+            for (const [key, rel] of relationships) {
+                if (!relationshipsByLevel.has(rel.level)) {
+                    relationshipsByLevel.set(rel.level, []);
+                }
+                relationshipsByLevel.get(rel.level).push(rel);
+            }
+
+            const maxLevel = Math.max(...Array.from(relationshipsByLevel.keys()));
+            
+            for (let currentLevel = 0; currentLevel <= maxLevel; currentLevel++) {
+                if (!relationshipsByLevel.has(currentLevel)) continue;
+                
+                console.log(`\n📊 Building level ${currentLevel}:`);
+                
+                relationshipsByLevel.get(currentLevel).forEach(rel => {
+                    // For level 0, parent is the root. For other levels, find parent in nodeMap
+                    let parentNode;
+                    if (currentLevel === 0) {
+                        parentNode = nodeMap.get(rel.parentId); // Root node
+                    } else {
+                        // Look for parent in nodeMap - it should exist from previous level
+                        parentNode = Array.from(nodeMap.values()).find(node => node.id === rel.parentId);
+                    }
+                    
+                    if (!parentNode) {
+                        console.log(`  ⚠️ Warning: Parent node ${rel.parentId} not found at level ${currentLevel}`);
+                        return;
+                    }
+                    
+                    // Check if this specific child already exists under this specific parent
+                    let childNode = parentNode.children.find(child => child.id === rel.childId);
+                    
+                    if (!childNode) {
+                        // Create new child node with aggregated quantity and instance names
+                        childNode = {
+                            ...rel.child,
+                            level: currentLevel + 1,
+                            children: [],
+                            quantity: rel.instances.length,
+                            instanceNames: [...new Set(rel.instances.map(inst => inst.name))].join(', ')
+                        };
+                        
+                        parentNode.children.push(childNode);
+                        // Use parent-child combination as key to allow same child under different parents
+                        nodeMap.set(`${rel.parentId}-${rel.childId}`, childNode);
+                        
+                        console.log(`  ✅ Added: ${rel.parent.title} → ${rel.child.title} (qty: ${childNode.quantity}, instances: "${childNode.instanceNames}")`);
+                    } else {
+                        console.log(`  ℹ️ Child ${rel.child.title} already exists under ${rel.parent.title}`);
+                    }
+                });
+            }
+
+            console.log('\n🎯 Quantity view transformation completed with PROPER GROUPING');
+            console.log(`📋 Root: ${rootNode.title} with ${rootNode.children.length} direct children`);
+            
+            // Log the final tree structure
+            function logTree(node, depth = 0) {
+                const indent = '  '.repeat(depth);
+                console.log(`${indent}${node.title} (qty: ${node.quantity}, instances: "${node.instanceNames}")`);
+                node.children.forEach(child => logTree(child, depth + 1));
+            }
+            
+            console.log('\n🌳 Final tree structure:');
+            logTree(rootNode);
+            logTree(rootNode);
+            
+            return [rootNode];
+        }
+
+        function flattenQuantityData(quantityTree, parentId = null, level = 0) {
+            let flattened = [];
+            
+            quantityTree.forEach((item, index) => {
+                const nodeId = parentId ? `${parentId}-${index}` : `root-${index}`;
+                
+                const flatItem = {
+                    id: nodeId,
+                    level: level,
+                    parentId: parentId,
+                    hasChildren: item.children && item.children.length > 0,
+                    expanded: false,
+                    visible: level === 0, // Only root level visible initially
+                    
+                    // Data fields
+                    title: item.title || item.name || 'Unknown',
+                    name: item.name || 'N/A',
+                    revision: item.revision || 'N/A',
+                    modified: item.modified ? new Date(item.modified).toLocaleDateString() : 'N/A',
+                    state: item.state || 'UNKNOWN',
+                    quantity: item.quantity || 1,
+                    instanceNames: item.instanceNames || 'N/A',
+                    organization: item.organization || '',
+                    type: item.type || ''
+                };
+                
+                flattened.push(flatItem);
+                console.log(`📄 Flattened: ${flatItem.title} (Level ${level}, Qty: ${flatItem.quantity}, HasChildren: ${flatItem.hasChildren}, Visible: ${flatItem.visible})`);
+                
+                // Recursively add children - but they will be hidden initially
+                if (item.children && item.children.length > 0) {
+                    const childrenFlat = flattenQuantityData(item.children, nodeId, level + 1);
+                    flattened = flattened.concat(childrenFlat);
+                }
+            });
+            
+            console.log(`📋 Flattened ${flattened.length} total items (${flattened.filter(f => f.visible).length} visible at level ${level})`);
+            return flattened;
+        }
+
+        function createQuantityViewTable(containerId, quantityData) {
+            console.log('🏗️ Creating Quantity View Table...', quantityData);
+            
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error('❌ Container not found:', containerId);
+                return null;
+            }
+
+            // Table configuration for quantity view
+            const tableOptions = {
+                columns: [
+                    { key: 'title', header: 'Title', width: '25%' },
+                    { key: 'name', header: 'Name', width: '15%' },
+                    { key: 'revision', header: 'Revision', width: '10%' },
+                    { key: 'quantity', header: 'Quantity', width: '10%' },
+                    { key: 'modified', header: 'Modified', width: '15%' },
+                    { key: 'state', header: 'State', width: '10%' },
+                    { key: 'instanceNames', header: 'Instance Names', width: '15%' }
+                ],
+                showControls: true,
+                expandable: true
+            };
+
+            try {
+                const tableInstance = new BOMTable(containerId, tableOptions);
+                
+                // Load the pre-flattened quantity data
+                tableInstance.loadData(quantityData);
+                
+                console.log('✅ Quantity view table created successfully');
+                return tableInstance;
+                
+            } catch (error) {
+                console.error('❌ Error creating quantity view table:', error);
+                return null;
+            }
+        }
+    </script>
+    
+    <script>
+        // Global variables
+        let currentTableInstance = null;
+        let quantityData = null;
+        let rawEngitemResponse = null;
+
+        // Embedded JSON data to avoid CORS issues
+        const embeddedEngitemResponse = {
+    "member": [
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-16T17:06:26Z",
+            "title": "JBM-000023",
+            "type": "VPMReference",
+            "cestamp": "4611CC2985CD040068AF0B9700000428",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000186",
+            "modified": "2025-08-27T13:43:51Z",
+            "id": "4611CC298D12000068A0BA8A000001BF",
+            "state": "IN_WORK",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-17T06:15:37Z",
+            "title": "GR-000666-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A19135000086B4",
+            "revision": "B",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000188",
+            "modified": "2025-08-17T08:22:15Z",
+            "id": "4611CC298D12000068A173890000718A",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-17T06:15:37Z",
+            "title": "ID-006663-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A19135000086B4",
+            "revision": "B",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000190",
+            "modified": "2025-08-17T08:22:15Z",
+            "id": "4611CC298D12000068A173890000718E",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-17T06:15:37Z",
+            "title": "AM-000050-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A19135000086B4",
+            "revision": "B",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000195",
+            "modified": "2025-08-17T08:22:15Z",
+            "id": "4611CC298D12000068A1738900007192",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-16T18:24:46Z",
+            "title": "AL-000003-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A0D8CC00006E7E",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000201",
+            "modified": "2025-08-16T19:15:26Z",
+            "id": "4611CC298D12000068A0CCE800000291",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-17T06:18:31Z",
+            "title": "AM-000051-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A19135000086B4",
+            "revision": "B",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000196",
+            "modified": "2025-08-17T08:22:15Z",
+            "id": "4611CC298D12000068A17437000072DE",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-07-18T14:30:50Z",
+            "title": "AL-000004-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A19135000086B4",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000070",
+            "modified": "2025-08-17T08:22:15Z",
+            "id": "4611CC2986130000687A5A8E00000037",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-07-18T14:30:50Z",
+            "title": "3D Shape00000068",
+            "type": "3DShape",
+            "cestamp": "4611CC298D12000068A19135000086B4",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "3sh-51718113-00000068",
+            "modified": "2025-08-17T08:22:15Z",
+            "id": "4611CC2986130000687A5A8F00000039",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-17T06:52:20Z",
+            "description": "nwe part created in release in work under",
+            "title": "AM-000052-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A19135000086B4",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000207",
+            "modified": "2025-08-17T08:22:15Z",
+            "id": "4611CC298D12000068A17C13000003B3",
+            "state": "RELEASED",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-16T17:17:51Z",
+            "title": "GR-00001-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC2985CD040068AF4FA00000044E",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000189",
+            "modified": "2025-08-27T18:34:08Z",
+            "id": "4611CC298D12000068A0BD3D000001E1",
+            "state": "IN_WORK",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-16T17:18:55Z",
+            "title": "ID-0077752-000",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A0BDC50000653C",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000191",
+            "modified": "2025-08-16T17:20:05Z",
+            "id": "4611CC298D12000068A0BD7C000001FD",
+            "state": "IN_WORK",
+            "collabspace": "Test"
+        },
+        {
+            "owner": "admin_platform",
+            "created": "2025-08-16T17:25:10Z",
+            "title": "ID-0077753",
+            "type": "VPMReference",
+            "cestamp": "4611CC298D12000068A0C8D2000065BE",
+            "revision": "A",
+            "organization": "Company Name",
+            "name": "prd-51718113-00000199",
+            "modified": "2025-08-16T18:07:14Z",
+            "id": "4611CC298D12000068A0BEF30000026D",
+            "state": "IN_WORK",
+            "collabspace": "Test"
+        },
+        {
+            "created": "2025-08-17T06:21:27Z",
+            "name": "Group.1",
+            "modified": "2025-08-17T06:21:27Z",
+            "id": "4611CC298D12000068A174E700000313",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A174E60000743E"
+        },
+        {
+            "created": "2025-08-17T06:15:37Z",
+            "name": "Physical Product00000190.1",
+            "modified": "2025-08-17T06:15:37Z",
+            "id": "4611CC298D12000068A1738900007196",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A1738800007186"
+        },
+        {
+            "created": "2025-08-17T06:15:37Z",
+            "name": "UPPER",
+            "modified": "2025-08-17T06:28:14Z",
+            "id": "4611CC298D12000068A173890000719C",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A1767E000077A4"
+        },
+        {
+            "created": "2025-08-17T06:15:37Z",
+            "name": "YELLOW",
+            "modified": "2025-08-17T06:43:49Z",
+            "id": "4611CC298D12000068A17389000071AE",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A17A2500007984"
+        },
+        {
+            "created": "2025-08-17T06:43:11Z",
+            "name": "BLUE",
+            "modified": "2025-08-17T06:43:58Z",
+            "id": "4611CC298D12000068A179FF0000037D",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A17A2E000079DC"
+        },
+        {
+            "created": "2025-08-17T06:23:17Z",
+            "name": "Physical Product00000196.1",
+            "modified": "2025-08-17T06:23:17Z",
+            "id": "4611CC298D12000068A175550000032B",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A1755400007534"
+        },
+        {
+            "created": "2025-08-17T06:23:49Z",
+            "name": "right",
+            "modified": "2025-08-17T06:24:39Z",
+            "id": "4611CC298D12000068A1757500000335",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A175A6000076C0"
+        },
+        {
+            "created": "2025-08-17T06:23:49Z",
+            "name": "bootom",
+            "modified": "2025-08-17T06:24:48Z",
+            "id": "4611CC298D12000068A175750000033B",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A175B000007718"
+        },
+        {
+            "created": "2025-08-17T06:45:06Z",
+            "name": "Physical Product00000070.1",
+            "modified": "2025-08-17T06:45:06Z",
+            "id": "4611CC298D12000068A17A72000003A5",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A17A7200007A2A"
+        },
+        {
+            "created": "2025-07-18T14:30:51Z",
+            "modified": "2025-07-18T14:30:51Z",
+            "id": "4611CC2986130000687A5A9A00000047",
+            "type": "VPMRepInstance",
+            "cestamp": "4611CC2986130000687A5A990000012E"
+        },
+        {
+            "created": "2025-08-17T06:52:20Z",
+            "name": "Physical Product00000207.1",
+            "modified": "2025-08-17T06:52:21Z",
+            "id": "4611CC298D12000068A17C24000003BB",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A17C2400007B36"
+        },
+        {
+            "created": "2025-08-16T17:17:51Z",
+            "name": "Physical Product00000189.1",
+            "modified": "2025-08-16T17:17:52Z",
+            "id": "4611CC298D12000068A0BD3F000001E9",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A0BD3F000064F6"
+        },
+        {
+            "created": "2025-08-16T17:18:55Z",
+            "name": "Physical Product00000191.1",
+            "modified": "2025-08-16T17:18:55Z",
+            "id": "4611CC298D12000068A0BD7F00000207",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A0BD7F00006522"
+        },
+        {
+            "created": "2025-08-16T17:25:10Z",
+            "name": "Physical Product00000199.1",
+            "modified": "2025-08-16T17:25:10Z",
+            "id": "4611CC298D12000068A0BEF600000275",
+            "type": "VPMInstance",
+            "cestamp": "4611CC298D12000068A0BEF6000065AC"
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A1738900007196",
+                "4611CC298D12000068A173890000718E",
+                "4611CC298D12000068A173890000719C",
+                "4611CC298D12000068A1738900007192",
+                "4611CC298D12000068A17389000071AE",
+                "4611CC298D12000068A0CCE800000291"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A1738900007196",
+                "4611CC298D12000068A173890000718E",
+                "4611CC298D12000068A173890000719C",
+                "4611CC298D12000068A1738900007192",
+                "4611CC298D12000068A179FF0000037D",
+                "4611CC298D12000068A0CCE800000291"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A1738900007196",
+                "4611CC298D12000068A173890000718E",
+                "4611CC298D12000068A175550000032B",
+                "4611CC298D12000068A17437000072DE"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A1738900007196",
+                "4611CC298D12000068A173890000718E",
+                "4611CC298D12000068A1757500000335",
+                "4611CC298D12000068A1738900007192",
+                "4611CC298D12000068A17389000071AE",
+                "4611CC298D12000068A0CCE800000291"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A1738900007196",
+                "4611CC298D12000068A173890000718E",
+                "4611CC298D12000068A1757500000335",
+                "4611CC298D12000068A1738900007192",
+                "4611CC298D12000068A179FF0000037D",
+                "4611CC298D12000068A0CCE800000291"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A1738900007196",
+                "4611CC298D12000068A173890000718E",
+                "4611CC298D12000068A175750000033B",
+                "4611CC298D12000068A1738900007192",
+                "4611CC298D12000068A17389000071AE",
+                "4611CC298D12000068A0CCE800000291"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A1738900007196",
+                "4611CC298D12000068A173890000718E",
+                "4611CC298D12000068A175750000033B",
+                "4611CC298D12000068A1738900007192",
+                "4611CC298D12000068A179FF0000037D",
+                "4611CC298D12000068A0CCE800000291"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A17A72000003A5",
+                "4611CC2986130000687A5A8E00000037",
+                "4611CC2986130000687A5A9A00000047",
+                "4611CC2986130000687A5A8F00000039"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A174E700000313",
+                "4611CC298D12000068A173890000718A",
+                "4611CC298D12000068A17C24000003BB",
+                "4611CC298D12000068A17C13000003B3"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A0BD3F000001E9",
+                "4611CC298D12000068A0BD3D000001E1",
+                "4611CC298D12000068A0BD7F00000207",
+                "4611CC298D12000068A0BD7C000001FD"
+            ]
+        },
+        {
+            "Path": [
+                "4611CC298D12000068A0BA8A000001BF",
+                "4611CC298D12000068A0BD3F000001E9",
+                "4611CC298D12000068A0BD3D000001E1",
+                "4611CC298D12000068A0BEF600000275",
+                "4611CC298D12000068A0BEF30000026D"
+            ]
+        }
+    ],
+    "totalItems": 37,
+    "nlsLabel": {
+        "id": "Id",
+        "type": "Type",
+        "modified": "Modification Date",
+        "created": "Creation Date",
+        "revision": "Revision",
+        "state": "State",
+        "owner": "Owner"
+    }
+};
+
+        // Load JSON data and initialize
+        async function loadQuantityView() {
+            console.log('🚀 Loading Quantity View...');
+            
+            showLoading(true);
+            hideError();
+
+            try {
+                // Use embedded data instead of fetching
+                rawEngitemResponse = embeddedEngitemResponse;
+                console.log('📄 JSON data loaded successfully');
+
+                // Transform to quantity view
+                const quantityTree = transformToQuantityView(rawEngitemResponse);
+                console.log('🔄 Data transformed to quantity view');
+
+                // Flatten for table display
+                quantityData = flattenQuantityData(quantityTree);
+                console.log('📋 Data flattened for table display');
+
+                // Create table
+                currentTableInstance = createQuantityViewTable('bomTableContainer', quantityData);
+                
+                if (currentTableInstance) {
+                    updateSummary();
+                    showSummary(true);
+                    console.log('✅ Quantity view loaded successfully');
+                } else {
+                    throw new Error('Failed to create table instance');
+                }
+
+            } catch (error) {
+                console.error('❌ Error loading quantity view:', error);
+                showError('Failed to load quantity view: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Control functions
+        function expandAll() {
+            if (currentTableInstance) {
+                currentTableInstance.expandAll();
+                console.log('📂 All items expanded');
+            }
+        }
+
+        function collapseAll() {
+            if (currentTableInstance) {
+                currentTableInstance.collapseAll();
+                console.log('📁 All items collapsed');
+            }
+        }
+
+        function exportData() {
+            if (quantityData) {
+                const dataStr = JSON.stringify(quantityData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'bom-quantity-view.json';
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                console.log('💾 Data exported');
+            }
+        }
+
+        // UI helper functions
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showSummary(show) {
+            document.getElementById('summary').style.display = show ? 'block' : 'none';
+        }
+
+        function updateSummary() {
+            if (!quantityData) return;
+
+            const totalProducts = quantityData.length;
+            const totalInstances = quantityData.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            const uniqueParts = new Set(quantityData.map(item => item.title)).size;
+
+            document.getElementById('totalProducts').textContent = totalProducts;
+            document.getElementById('totalInstances').textContent = totalInstances;
+            document.getElementById('uniqueParts').textContent = uniqueParts;
+        }
+
+        // Auto-load on page ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Page loaded, ready to load quantity view');
+            // Auto-load can be enabled by uncommenting the next line
+            // loadQuantityView();
+        });
+    </script>
+</body>
+</html>
